@@ -20,13 +20,20 @@ function findPossibleTraces(doc) {
     var doc_phone = doc.phone;
     
     var possible_infected_visitors = 
-        SELECT phone, checkin, checkout
+        SELECT meta().id, phone, checkin, checkout
         FROM `track-and-tracers`._default._default
-        WHERE checkin >= $doc_checkin AND checkin <= $doc_checkout;
+        WHERE (checkin >= $doc_checkin AND checkin <= $doc_checkout) OR (checkout >= $doc_checkin AND checkout <= $doc_checkout);
+        
+    log("These are the possible infections:", possible_infected_visitors);
         
     for(var person of possible_infected_visitors) {
-        log("Person who might be infected", person)
+        notify_via_sms(person)
     }
+}
+
+function notify_via_sms(doc) {
+    log("Person might be infected, notifying", doc)
+    UPDATE `track-and-tracers`._default._default USE KEYS [$doc.id] SET notified = true;
 }
 
 function OnDelete(meta, options) {
