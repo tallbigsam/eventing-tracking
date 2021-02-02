@@ -1,34 +1,89 @@
 function OnUpdate(doc, meta) {
-    log("document", doc);
     if(doc._type === "locationRegistration"){
-        if(doc["checkout"]){
-            log("We have a checkedout person", doc);
-            if(doc.infected){
-                log("person has been infected")
-                findPossibleTraces(doc)
+        if(doc["location"]) {
+            if(doc["checkin"]){
+                increment_venue_guest(doc);
+            }
+            if(doc["checkout"]){
+                decrement_venue_guest(doc);
+                if(doc.infected){
+                    findPossibleTraces(doc);
+                }
             }
         }
     }
     
 }
 
+function venue_full_call_police(location) {
+    //rest call to the police
+    log("location is full: ", location);
+}
+
+function increment_venue_guest(doc) {
+    
+    
+    //log("incrementing guests at: ", doc.location)
+    var location_doc = tnt[doc.location];
+    
+    log("Current venue guests:", location_doc.guests)
+    if(location_doc.guests < location_doc.maxGuests) {
+        //log("guests incremented")
+        location_doc.guests = location_doc + 1;
+    }
+    else {
+        // venue is full, call the police
+        venue_full_call_police(doc.location);
+    }
+    
+    //log("Local guests:", location_doc.guests);
+    
+    tnt[doc.location] = location_doc;
+    //log("updated the location doc");
+    
+    //log("location guests in cb: ", tnt[doc.location].guests);
+    
+    //log("location doc local:", location_doc);
+    //log("location doc couchbase:", tnt[doc.location]);
+}
+
+function decrement_venue_guest(doc) {
+    log("DECREMENTING")
+    var location_doc = tnt[doc["location"]];
+    log("decrementing from: ", location_doc.guests);
+    location_doc["guests"] = location_doc["guests"]--;
+    log("decrementation complete: ", location_doc.guests)
+    tnt[doc["location"]] = location_doc;
+    log("location guests in cb: ", tnt[doc.location].guests);
+    
+}
+
 function findPossibleTraces(doc) {
-    log("Finding possible infections")
     
     var doc_checkin = doc.checkin;
     var doc_checkout = doc.checkout;
     var doc_phone = doc.phone;
+    var doc_location = doc.location;
     
     var possible_infected_visitors = 
         SELECT meta().id, phone, checkin, checkout
         FROM `track-and-tracers`._default._default
-        WHERE (checkin >= $doc_checkin AND checkin <= $doc_checkout) OR (checkout >= $doc_checkin AND checkout <= $doc_checkout);
-        
-    log("These are the possible infections:", possible_infected_visitors);
-        
+        WHERE ((checkin >= $doc_checkin AND checkin <= $doc_checkout) 
+            OR (checkout >= $doc_checkin AND checkout <= $doc_checkout))
+            AND location = $doc_location
+            AND phone != $doc_phone;
+
     for(var person of possible_infected_visitors) {
-        notify_via_sms(person)
+        notify_via_sms(person);
     }
+    
+    log("Updating the infections doc");
+    var location_doc = tnt[doc.location];
+    log("Infections doc:", location_doc);
+    location_doc.infections = location_doc.infections + 1;
+    log("new infections", location_doc.infections);
+    tnt[doc.location] = location_doc;
+    
 }
 
 function notify_via_sms(doc) {
