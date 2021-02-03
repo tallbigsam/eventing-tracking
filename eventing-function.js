@@ -67,7 +67,7 @@ function findPossibleTraces(doc) {
     
     var possible_infected_visitors = 
         SELECT meta().id, phone, checkin, checkout
-        FROM `track-and-tracers`._default._default
+        FROM `track-and-tracers`
         WHERE ((checkin >= $doc_checkin AND checkin <= $doc_checkout) 
             OR (checkout >= $doc_checkin AND checkout <= $doc_checkout))
             AND location = $doc_location
@@ -88,7 +88,7 @@ function findPossibleTraces(doc) {
 
 function notify_via_sms(doc) {
     log("Person might be infected, notifying", doc)
-    UPDATE `track-and-tracers`._default._default USE KEYS [$doc.id] SET notified = true;
+    UPDATE `track-and-tracers` USE KEYS [$doc.id] SET notified = true;
 }
 
 function OnDelete(meta, options) {
