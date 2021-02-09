@@ -7,31 +7,33 @@ function OnUpdate(doc, meta) {
                 }
             }
             if(doc["checkout"]){
-                decrement_venue_guest(doc);
-            }
-            if(doc.infected){
+                if(!doc["checkedOut"]) {
+                    decrement_venue_guest(doc);
+                }
+                if(doc.infected){
                     findPossibleTraces(doc);
+                }
             }
         }
     }
+    
 }
 
 function venue_full_call_police(location) {
     //rest call to the police
-    log("location is full calling police!!!: ", location);
+    log("location is full: ", location);
 }
 
 function increment_venue_guest(doc) {
     
     
-    log("incrementing guests at: ", doc.location)
+    //log("incrementing guests at: ", doc.location)
     var location_doc = tnt[doc.location];
-    log("Increment Document to be changed", location_doc);
     
-    log("Current venue guests:", location_doc["guests"]);
-    if(location_doc["guests"] < location_doc["maxGuests"]) {
-        log("guests incremented");
-        location_doc["guests"] = location_doc["guests"] + 1;
+    log("Current venue guests:", location_doc.guests)
+    if(location_doc.guests < location_doc.maxGuests) {
+        //log("guests incremented")
+        location_doc.guests = location_doc.guests + 1;
     }
     else {
         // venue is full, call the police
@@ -42,6 +44,13 @@ function increment_venue_guest(doc) {
     
     tnt[doc.location] = location_doc;
     //log("updated the location doc");
+
+
+    log("setting checkout")
+    var doc_to_edit = tnt[doc];
+    doc_to_edit["checkedOut"] = false;
+    tnt[doc] = doc_to_edit;
+    log("checkout set", tnt[doc])
     
     //log("location guests in cb: ", tnt[doc.location].guests);
     
@@ -58,6 +67,9 @@ function decrement_venue_guest(doc) {
     tnt[doc["location"]] = location_doc;
     log("location guests in cb: ", tnt[doc.location].guests);
     
+    var doc_to_edit = tnt[doc];
+    doc_to_edit["checkedOut"] = true;
+    tnt[doc] = doc_to_edit;
 }
 
 function findPossibleTraces(doc) {
