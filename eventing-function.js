@@ -2,7 +2,9 @@ function OnUpdate(doc, meta) {
     if(doc._type === "locationRegistration"){
         if(doc["location"]) {
             if(doc["checkin"]){
-                increment_venue_guest(doc);
+                if(!doc["checkout"]) {
+                    increment_venue_guest(doc);
+                }
             }
             if(doc["checkout"]){
                 decrement_venue_guest(doc);
