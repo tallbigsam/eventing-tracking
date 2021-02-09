@@ -2,34 +2,38 @@ function OnUpdate(doc, meta) {
     if(doc._type === "locationRegistration"){
         if(doc["location"]) {
             if(doc["checkin"]){
-                increment_venue_guest(doc);
+                if(!doc["checkout"]) {
+                    increment_venue_guest(doc, meta);
+                }
             }
             if(doc["checkout"]){
-                decrement_venue_guest(doc);
-            }
-            if(doc.infected){
+                if(!doc["checkedOut"]) {
+                    decrement_venue_guest(doc, meta);
+                }
+                if(doc.infected){
                     findPossibleTraces(doc);
+                }
             }
         }
     }
+    
 }
 
 function venue_full_call_police(location) {
     //rest call to the police
-    log("location is full calling police!!!: ", location);
+    log("location is full: ", location);
 }
 
-function increment_venue_guest(doc) {
+function increment_venue_guest(doc, meta) {
     
     
-    log("incrementing guests at: ", doc.location)
+    //log("incrementing guests at: ", doc.location)
     var location_doc = tnt[doc.location];
-    log("Increment Document to be changed", location_doc);
     
-    log("Current venue guests:", location_doc["guests"]);
-    if(location_doc["guests"] < location_doc["maxGuests"]) {
-        log("guests incremented");
-        location_doc["guests"] = location_doc["guests"] + 1;
+    log("Current venue guests:", location_doc.guests)
+    if(location_doc.guests < location_doc.maxGuests) {
+        //log("guests incremented")
+        location_doc.guests = location_doc.guests + 1;
     }
     else {
         // venue is full, call the police
@@ -40,6 +44,13 @@ function increment_venue_guest(doc) {
     
     tnt[doc.location] = location_doc;
     //log("updated the location doc");
+
+
+    log("setting checkout status")
+    doc["checkedOut"] = false;
+    log("checkedout: ", doc.checkedOut);
+    tnt[meta.id] = doc;
+    log("checkout set", tnt[meta.id])
     
     //log("location guests in cb: ", tnt[doc.location].guests);
     
@@ -47,7 +58,7 @@ function increment_venue_guest(doc) {
     //log("location doc couchbase:", tnt[doc.location]);
 }
 
-function decrement_venue_guest(doc) {
+function decrement_venue_guest(doc, meta) {
     log("DECREMENTING")
     var location_doc = tnt[doc["location"]];
     log("decrementing from: ", location_doc.guests);
@@ -56,6 +67,11 @@ function decrement_venue_guest(doc) {
     tnt[doc["location"]] = location_doc;
     log("location guests in cb: ", tnt[doc.location].guests);
     
+    log("setting checkout status")
+    doc["checkedOut"] = true;
+    log("checkedout: ", doc.checkedOut);
+    tnt[meta.id] = doc;
+    log("checkout set", tnt[meta.id])
 }
 
 function findPossibleTraces(doc) {
