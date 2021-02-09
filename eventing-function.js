@@ -3,12 +3,12 @@ function OnUpdate(doc, meta) {
         if(doc["location"]) {
             if(doc["checkin"]){
                 if(!doc["checkout"]) {
-                    increment_venue_guest(doc);
+                    increment_venue_guest(doc, meta);
                 }
             }
             if(doc["checkout"]){
                 if(!doc["checkedOut"]) {
-                    decrement_venue_guest(doc);
+                    decrement_venue_guest(doc, meta);
                 }
                 if(doc.infected){
                     findPossibleTraces(doc);
@@ -24,7 +24,7 @@ function venue_full_call_police(location) {
     log("location is full: ", location);
 }
 
-function increment_venue_guest(doc) {
+function increment_venue_guest(doc, meta) {
     
     
     //log("incrementing guests at: ", doc.location)
@@ -46,11 +46,11 @@ function increment_venue_guest(doc) {
     //log("updated the location doc");
 
 
-    log("setting checkout")
-    var doc_to_edit = tnt[doc];
-    doc_to_edit["checkedOut"] = false;
-    tnt[doc] = doc_to_edit;
-    log("checkout set", tnt[doc])
+    log("setting checkout status")
+    doc["checkedOut"] = false;
+    log("checkedout: ", doc.checkedOut);
+    tnt[meta.id] = doc;
+    log("checkout set", tnt[meta.id])
     
     //log("location guests in cb: ", tnt[doc.location].guests);
     
@@ -58,7 +58,7 @@ function increment_venue_guest(doc) {
     //log("location doc couchbase:", tnt[doc.location]);
 }
 
-function decrement_venue_guest(doc) {
+function decrement_venue_guest(doc, meta) {
     log("DECREMENTING")
     var location_doc = tnt[doc["location"]];
     log("decrementing from: ", location_doc.guests);
@@ -69,7 +69,7 @@ function decrement_venue_guest(doc) {
     
     var doc_to_edit = tnt[doc];
     doc_to_edit["checkedOut"] = true;
-    tnt[doc] = doc_to_edit;
+    tnt[meta.id] = doc_to_edit;
 }
 
 function findPossibleTraces(doc) {
@@ -81,7 +81,7 @@ function findPossibleTraces(doc) {
     
     var possible_infected_visitors = 
         SELECT meta().id, phone, checkin, checkout
-        FROM `track-and-tracers`
+        FROM `track-and-tracers`._default._default
         WHERE ((checkin >= $doc_checkin AND checkin <= $doc_checkout) 
             OR (checkout >= $doc_checkin AND checkout <= $doc_checkout))
             AND location = $doc_location
@@ -102,7 +102,7 @@ function findPossibleTraces(doc) {
 
 function notify_via_sms(doc) {
     log("Person might be infected, notifying", doc)
-    UPDATE `track-and-tracers` USE KEYS [$doc.id] SET notified = true;
+    UPDATE `track-and-tracers`._default._default USE KEYS [$doc.id] SET notified = true;
 }
 
 function OnDelete(meta, options) {
