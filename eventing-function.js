@@ -67,9 +67,11 @@ function decrement_venue_guest(doc, meta) {
     tnt[doc["location"]] = location_doc;
     log("location guests in cb: ", tnt[doc.location].guests);
     
-    var doc_to_edit = tnt[doc];
-    doc_to_edit["checkedOut"] = true;
-    tnt[meta.id] = doc_to_edit;
+    log("setting checkout status")
+    doc["checkedOut"] = true;
+    log("checkedout: ", doc.checkedOut);
+    tnt[meta.id] = doc;
+    log("checkout set", tnt[meta.id])
 }
 
 function findPossibleTraces(doc) {
@@ -81,7 +83,7 @@ function findPossibleTraces(doc) {
     
     var possible_infected_visitors = 
         SELECT meta().id, phone, checkin, checkout
-        FROM `track-and-tracers`._default._default
+        FROM `track-and-tracers`
         WHERE ((checkin >= $doc_checkin AND checkin <= $doc_checkout) 
             OR (checkout >= $doc_checkin AND checkout <= $doc_checkout))
             AND location = $doc_location
@@ -102,7 +104,7 @@ function findPossibleTraces(doc) {
 
 function notify_via_sms(doc) {
     log("Person might be infected, notifying", doc)
-    UPDATE `track-and-tracers`._default._default USE KEYS [$doc.id] SET notified = true;
+    UPDATE `track-and-tracers` USE KEYS [$doc.id] SET notified = true;
 }
 
 function OnDelete(meta, options) {
